@@ -6,10 +6,15 @@ import java.text.DateFormat;
 import java.util.Date;
 import java.util.Locale;
 
+import javax.annotation.Resource;
+import javax.naming.Context;
+import javax.naming.InitialContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.hibernate.Session;
+import org.hibernate.cfg.Configuration;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
@@ -86,12 +91,17 @@ public class HomeController {
 	}
 	
 	
+	
 	@RequestMapping(value="listCustomers", method= RequestMethod.GET)
 	public String listAllCustomers(Model model)
 	{    try
 	   {
 		Class.forName("com.mysql.jdbc.Driver");
-		Connection cnn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind","root","admin"); 
+		//Connection cnn = DriverManager.getConnection("jdbc:mysql://localhost:3306/northwind","root","admin"); 
+		Session session = (new Configuration().configure().buildSessionFactory()).openSession();
+		
+		Connection cnn =session.connection();
+		
 		
 		String selectCommand = "select customerid,companyname from customers";
 		
@@ -99,6 +109,7 @@ public class HomeController {
 		
 		ResultSet rs =selectStatement.executeQuery(selectCommand); 
 		
+		ArrayList<Customer> lst = new ArrayList<Customer>();
 		String output = "<table border=1>";
 		
 		while(rs.next()==true)
@@ -109,12 +120,15 @@ public class HomeController {
 			output+="<td>"+rs.getString(2)+"</td>";
 			output+="</tr>";
 					
-			
+			lst.add(new Customer(rs.getString(1), rs.getString(2)));
 		}
 		
 		output+="</table>";
 		
+		
 		model.addAttribute("ctable", output);
+		
+		model.addAttribute("listUsers", lst);
 		
 		return "customers";
 	   }
@@ -123,6 +137,9 @@ public class HomeController {
 	{
 		// to do:
 		// add this view: errorPage
+		
+		logger.info("Error is {}.", e.getLocalizedMessage());
+		model.addAttribute("error", e.getMessage());
 		return "errorPage";
 		
 	}
